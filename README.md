@@ -1,6 +1,6 @@
 # tiny-treesitter.nvim
 
-Installer-only Tree-sitter parser management for Neovim.
+Tiny Tree-sitter parser management for Neovim.
 
 This plugin keeps the fast parser installation workflow inspired by `nvim-treesitter` while dropping its feature modules. It vendors `arborist.nvim` registry data plus `arborist.nvim` query files, then exposes a small installer API for existing configs.
 
