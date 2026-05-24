@@ -1,27 +1,154 @@
-local M = {}
+--- Tiny Tree-sitter parser manager for Neovim
+---
+--- tiny-treesitter.nvim installs Tree-sitter parser libraries and query files.
+--- It intentionally does not provide highlighting modules, indentation modules,
+--- textobjects, or feature toggles. Start Tree-sitter with Neovim's native APIs
+--- after installing parsers.
+---
+--- Generated help source lives in `lua/tiny-treesitter/init.lua`. Run
+--- `scripts/minidoc.lua` with |mini.doc| to update `doc/tiny-treesitter.txt`;
+--- do not edit the generated help file manually.
+---
+--- # Requirements ~
+---
+--- - Neovim 0.12+
+--- - `curl`
+--- - `tar`
+--- - `tree-sitter` CLI 0.26.1+
+--- - C compiler available to `tree-sitter build`
+---
+--- # Setup ~
+---
+--- >lua
+---   require("tiny-treesitter").setup({
+---     install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
+---     ensure_installed = { "lua", "vim", "vimdoc" },
+---     auto_install = true,
+---   })
+--- <
+---
+--- See |tiny-treesitter.setup()| for setup options and
+--- |tiny-treesitter.install()| for install/update options.
+---
+--- # Installation layout ~
+---
+--- >text
+---   {install_dir}/parser/{lang}.so
+---   {install_dir}/parser-info/{lang}.revision
+---   {install_dir}/queries/{lang}/
+--- <
+---
+--- Like upstream nvim-treesitter, parser artifacts use `.so` on all platforms.
+--- The Tree-sitter build output is always `parser.so`, and the installed target
+--- is `{lang}.so`.
+---
+--- # Generated data ~
+---
+--- `lua/tiny-treesitter/parsers.lua` and `plugin/filetypes.lua` are generated
+--- from `arborist-ts/arborist.nvim/registry` with `scripts/update-registry.mjs`.
+---
+--- `runtime/queries` is vendored from `arborist-ts/queries` with
+--- `scripts/update-queries.mjs`.
+---@tag tiny-treesitter
 
-function M.setup(...)
+local TinyTreesitter = {}
+
+--- Configure tiny-treesitter.
+---
+---@class TinyTreesitterConfig
+---
+---@field install_dir string|nil Runtime directory that receives `parser/`,
+--- `parser-info/`, and `queries/`. Default:
+--- `vim.fs.joinpath(vim.fn.stdpath("data"), "site")`. When explicitly set, it is
+--- prepended to 'runtimepath'.
+---
+---@field ensure_installed string|string[]|nil Parser names to install
+--- asynchronously when setup() is called. Supports the same language expansion
+--- as |tiny-treesitter.install()|, including `"all"` and tier names:
+--- `"stable"`, `"unstable"`, `"unmaintained"`, and `"unsupported"`.
+---
+---@field auto_install boolean|nil Install a missing parser asynchronously when a
+--- buffer's |FileType| event resolves to that parser. Default: `false`.
+---
+---@param opts TinyTreesitterConfig|nil Setup options.
+---@return any
+---@tag tiny-treesitter.setup()
+function TinyTreesitter.setup(...)
   return require("tiny-treesitter.config").setup(...)
 end
 
-function M.get_available(...)
+--- Get available parser names.
+---
+---@param tier number|nil Numeric tier filter from generated parser data.
+---@return string[]
+---@tag tiny-treesitter.get_available()
+function TinyTreesitter.get_available(...)
   return require("tiny-treesitter.config").get_available(...)
 end
 
-function M.get_installed(...)
+--- Get installed parser/query names.
+---
+---@param kind string|nil Optional filter: `"parsers"` or `"queries"`.
+---@return string[]
+---@tag tiny-treesitter.get_installed()
+function TinyTreesitter.get_installed(...)
   return require("tiny-treesitter.config").get_installed(...)
 end
 
-function M.install(...)
+--- Install parsers and queries.
+---
+--- Without `opts.wait`, this returns an async task handle. With `opts.wait`, it
+--- returns `success, failures` directly.
+---
+---@class TinyTreesitterInstallOptions
+---
+---@field max_jobs number|nil Maximum number of parser jobs to run concurrently.
+--- Default: `100`.
+---
+---@field wait boolean|nil If true, block until the async task finishes and
+--- return `success, failures`. Without `wait`, the API returns a task handle.
+---
+---@field timeout number|nil Timeout in milliseconds used by the task handle when
+--- `wait = true`.
+---
+---@field callback fun(success:boolean, failures:table)|nil Called when an async
+--- task completes.
+---
+---@field summary boolean|nil Show a final summary notification for
+--- multi-language install/update tasks.
+---
+---@field force boolean|nil Reinstall even if the parser exists and the recorded
+--- revision matches. Also set by |:TSInstall!|.
+---
+---@field generate boolean|nil Run `tree-sitter generate` before building. Used
+--- by |:TSInstallFromGrammar|.
+---
+---@param languages string|string[] Parser name, parser names, `"all"`, or tier name.
+---@param opts TinyTreesitterInstallOptions|nil Install options.
+---@return any
+---@tag tiny-treesitter.install()
+function TinyTreesitter.install(...)
   return require("tiny-treesitter.install").install(...)
 end
 
-function M.update(...)
+--- Update installed parsers whose registry revision changed.
+---
+---@param languages string|string[]|nil Parser names. Defaults to installed parsers.
+---@param opts TinyTreesitterInstallOptions|nil Update options.
+---@return any
+---@tag tiny-treesitter.update()
+function TinyTreesitter.update(...)
   return require("tiny-treesitter.install").update(...)
 end
 
-function M.uninstall(...)
+--- Remove installed parser, revision, and query files.
+---
+---@param languages string|string[]|nil Parser names. Defaults to installed parsers.
+---@param opts TinyTreesitterInstallOptions|nil Uninstall options.
+---@return any
+---@tag tiny-treesitter.uninstall()
+function TinyTreesitter.uninstall(...)
   return require("tiny-treesitter.install").uninstall(...)
 end
 
-return M
+return TinyTreesitter

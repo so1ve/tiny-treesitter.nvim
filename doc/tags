@@ -1,0 +1,7 @@
+tiny-treesitter	tiny-treesitter.txt	/*tiny-treesitter*
+tiny-treesitter.get_available()	tiny-treesitter.txt	/*tiny-treesitter.get_available()*
+tiny-treesitter.get_installed()	tiny-treesitter.txt	/*tiny-treesitter.get_installed()*
+tiny-treesitter.install()	tiny-treesitter.txt	/*tiny-treesitter.install()*
+tiny-treesitter.setup()	tiny-treesitter.txt	/*tiny-treesitter.setup()*
+tiny-treesitter.uninstall()	tiny-treesitter.txt	/*tiny-treesitter.uninstall()*
+tiny-treesitter.update()	tiny-treesitter.txt	/*tiny-treesitter.update()*
