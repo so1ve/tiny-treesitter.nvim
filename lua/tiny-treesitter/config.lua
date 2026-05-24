@@ -24,17 +24,22 @@ function M.setup(opts)
     install_dir_added = true
   end
 
+  if opts.ensure_installed then
+    require("tiny-treesitter.install").install(config.ensure_installed, { summary = true })
+  end
+
   if config.auto_install then
     vim.api.nvim_create_autocmd("FileType", {
-      group = vim.api.nvim_create_augroup("TinyTreesitterInstallAutoInstall", { clear = true }),
+      group = vim.api.nvim_create_augroup("TinyTreesitterAutoInstall", { clear = true }),
+      desc = "Install missing Tree-sitter parser on demand",
       callback = function(event)
         local parser = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
 
-        if parser and not vim.list_contains(M.get_installed("parsers"), parser) then
-          vim.schedule(function()
-            require("tiny-treesitter").install(parser)
-          end)
+        if not parser or vim.list_contains(M.get_installed("parsers"), parser) then
+          return
         end
+
+        require("tiny-treesitter.install").install(parser)
       end,
     })
   end
@@ -53,7 +58,7 @@ function M.get_install_dir(name)
 end
 
 local function parser_name(file)
-  return file:match("^(.+)%.so$") or file:match("^(.+)%.dll$") or file:match("^(.+)%.dylib$")
+  return file:match("^(.+)%.so$")
 end
 
 function M.get_installed(kind)

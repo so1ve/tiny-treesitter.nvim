@@ -4,6 +4,9 @@ local util = require("tiny-treesitter.util")
 
 local M = {}
 
+local installing = {}
+local install_results = {}
+
 local function parser_lib(lang)
   return vim.fs.joinpath(config.get_install_dir("parser"), lang .. ".so")
 end
@@ -74,13 +77,13 @@ local function run(cmd, opts, context)
 end
 
 local function concurrency(opts)
-  local requested = tonumber(opts.jobs or opts.concurrency)
+  local requested = tonumber(opts.max_jobs)
 
   if requested and requested > 0 then
     return requested
   end
 
-  return math.max(1, math.min(4, vim.uv.available_parallelism() or 1))
+  return 100
 end
 
 local function download(info, lang, cache_dir)
@@ -239,7 +242,7 @@ local function fail(action, lang, err)
   return false, tostring(err)
 end
 
-local function install_lang(lang, opts)
+local function install_lang_inner(lang, opts)
   opts = opts or {}
 
   if not opts.force and vim.uv.fs_stat(parser_lib(lang)) and not needs_update(lang) then
@@ -317,6 +320,40 @@ local function install_lang(lang, opts)
 
   notify("Installed " .. lang)
   return true
+end
+
+local function install_lang(lang, opts)
+  if installing[lang] then
+    local done = vim.wait(60000, function()
+      return not installing[lang]
+    end)
+
+    if not done then
+      return fail("install", lang, "timed out waiting for active install")
+    end
+
+    local result = install_results[lang]
+
+    if result then
+      return result[1], result[2]
+    end
+
+    return true
+  end
+
+  installing[lang] = true
+
+  local ran, ok, err = pcall(install_lang_inner, lang, opts)
+
+  installing[lang] = nil
+
+  if not ran then
+    install_results[lang] = { false, tostring(ok) }
+    error(ok)
+  end
+
+  install_results[lang] = { ok, err }
+  return ok, err
 end
 
 local function run_languages(languages, opts, runner)
