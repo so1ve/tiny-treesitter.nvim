@@ -1,0 +1,3 @@
+lua/tiny-treesitter/parsers.lua
+plugin/filetypes.lua
+runtime/queries/**

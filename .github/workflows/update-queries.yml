@@ -1,0 +1,55 @@
+name: Update vendor
+
+on:
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      queries_ref:
+        description: Upstream arborist-ts/queries ref to vendor
+        required: false
+        default: main
+      registry_source_url:
+        description: Raw arborist.nvim registry base URL
+        required: false
+        default: https://raw.githubusercontent.com/arborist-ts/arborist.nvim/main/registry
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update registry-generated files
+        env:
+          REGISTRY_SOURCE_URL: ${{ inputs.registry_source_url || 'https://raw.githubusercontent.com/arborist-ts/arborist.nvim/main/registry' }}
+        run: node scripts/update-registry.mjs
+
+      - name: Update runtime queries
+        env:
+          QUERY_SOURCE_REF: ${{ inputs.queries_ref || 'main' }}
+        run: node scripts/update-queries.mjs
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-vendor
+          commit-message: "chore: update treesitter vendor data"
+          title: "chore: update treesitter vendor data"
+          body: |
+            Automated refresh of Tree-sitter vendor data.
+
+            Registry source: `${{ inputs.registry_source_url || 'https://raw.githubusercontent.com/arborist-ts/arborist.nvim/main/registry' }}`
+            Queries ref: `${{ inputs.queries_ref || 'main' }}`
+          add-paths: |
+            lua/tiny-treesitter/parsers.lua
+            plugin/filetypes.lua
+            runtime/queries
