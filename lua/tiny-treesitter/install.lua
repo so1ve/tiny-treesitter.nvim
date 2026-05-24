@@ -269,6 +269,8 @@ local function install_lang_inner(lang, opts)
     return true, nil, false
   end
 
+  notify("Installing " .. lang)
+
   if info.path then
     project_dir = vim.fs.normalize(info.path)
     revision = info.revision or info.branch or "local"
