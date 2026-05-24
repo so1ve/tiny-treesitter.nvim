@@ -10,6 +10,10 @@ local config = {
 
 local install_dir_added = false
 
+local function is_normal_buffer(buf)
+  return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == ""
+end
+
 function M.setup(opts)
   opts = opts or {}
 
@@ -33,6 +37,10 @@ function M.setup(opts)
       group = vim.api.nvim_create_augroup("TinyTreesitterAutoInstall", { clear = true }),
       desc = "Install missing Tree-sitter parser on demand",
       callback = function(event)
+        if not is_normal_buffer(event.buf) then
+          return
+        end
+
         local parser = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
 
         if not parser or vim.list_contains(M.get_installed("parsers"), parser) then

@@ -68,7 +68,8 @@ local TinyTreesitter = {}
 --- `"stable"`, `"unstable"`, `"unmaintained"`, and `"unsupported"`.
 ---
 ---@field auto_install boolean|nil Install a missing parser asynchronously when a
---- buffer's |FileType| event resolves to that parser. Default: `false`.
+--- normal buffer's |FileType| event resolves to that parser. Special buffers like
+--- plugin UI, quickfix, terminal, and help buffers are ignored. Default: `false`.
 ---
 ---@param opts TinyTreesitterConfig|nil Setup options.
 ---@return any
