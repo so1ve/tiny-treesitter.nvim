@@ -252,7 +252,7 @@ local function install_lang_inner(lang, opts)
       return fail("install queries for", lang, err)
     end
 
-    return true
+    return true, nil, false
   end
 
   local info = get_install_info(lang)
@@ -266,8 +266,7 @@ local function install_lang_inner(lang, opts)
       return fail("install queries for", lang, err)
     end
 
-    notify("Installed queries for " .. lang)
-    return true
+    return true, nil, false
   end
 
   if info.path then
@@ -319,7 +318,7 @@ local function install_lang_inner(lang, opts)
   end
 
   notify("Installed " .. lang)
-  return true
+  return true, nil, true
 end
 
 local function install_lang(lang, opts)
@@ -335,29 +334,30 @@ local function install_lang(lang, opts)
     local result = install_results[lang]
 
     if result then
-      return result[1], result[2]
+      return result[1], result[2], result[3]
     end
 
-    return true
+    return true, nil, false
   end
 
   installing[lang] = true
 
-  local ran, ok, err = pcall(install_lang_inner, lang, opts)
+  local ran, ok, err, installed = pcall(install_lang_inner, lang, opts)
 
   installing[lang] = nil
 
   if not ran then
-    install_results[lang] = { false, tostring(ok) }
+    install_results[lang] = { false, tostring(ok), false }
     error(ok)
   end
 
-  install_results[lang] = { ok, err }
-  return ok, err
+  install_results[lang] = { ok, err, installed }
+  return ok, err, installed
 end
 
 local function run_languages(languages, opts, runner)
   local ok_count = 0
+  local installed_count = 0
   local failures = {}
   local tasks = {}
 
@@ -377,13 +377,17 @@ local function run_languages(languages, opts, runner)
       failures[lang] = task_error
     elseif result and result[1] then
       ok_count = ok_count + 1
+
+      if result[3] then
+        installed_count = installed_count + 1
+      end
     else
       failures[lang] = (result and result[2]) or "failed"
     end
   end
 
-  if opts.summary and #languages > 1 then
-    notify(string.format("Installed %d/%d languages", ok_count, #languages))
+  if opts.summary and installed_count > 0 and #languages > 1 then
+    notify(string.format("Installed %d new parser%s", installed_count, installed_count == 1 and "" or "s"))
   end
 
   return ok_count == #languages, failures
