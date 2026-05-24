@@ -41,13 +41,13 @@ It does **not** provide highlighting modules, indentation modules, textobjects, 
   "so1ve/tiny-treesitter.nvim",
   lazy = false,
   build = function()
-    require("tiny-treesitter").install({ "lua", "vim", "vimdoc" })
+    require("tiny-treesitter").install({ "lua", "vim", "vimdoc" }, { wait = true })
   end,
 }
 ```
 
 > [!TIP]
-> If you intentionally use this plugin as a drop-in shim for another lazy.nvim dependency name, add `name = "..."` to the spec. For example, `name = "nvim-treesitter"` makes dependencies that still request `nvim-treesitter/nvim-treesitter` resolve to this local installer-only shim. Omit `name` when every dependent spec already references this local `dir` explicitly.
+> If you intentionally use this plugin as a drop-in shim for another lazy.nvim dependency name, add `name = "..."` to the spec. For example, `name = "nvim-treesitter"` makes dependencies that still request `nvim-treesitter/nvim-treesitter` resolve to this installer-only shim. Omit `name` when every dependent spec already references `so1ve/tiny-treesitter.nvim` explicitly.
 
 ## Usage
 
@@ -69,6 +69,15 @@ require("tiny-treesitter").setup({
 require("tiny-treesitter").install({ "lua", "typescript", "vue" })
 require("tiny-treesitter").update()
 require("tiny-treesitter").uninstall("lua")
+```
+
+Installs and updates are asynchronous by default. They run parser jobs concurrently
+with a small worker cap, so `:TSInstall` and `:TSUpdate` return without freezing the
+UI. Use `{ wait = true }` only in build hooks or scripts that must block until the
+operation finishes:
+
+```lua
+local ok = require("tiny-treesitter").install({ "lua", "vim" }, { wait = true })
 ```
 
 ## Notes

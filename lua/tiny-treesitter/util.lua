@@ -23,22 +23,6 @@ function M.write_file(path, content)
   file:close()
 end
 
-function M.system(cmd, opts)
-  opts = opts or {}
-
-  local ok, job = pcall(vim.system, cmd, opts)
-
-  if not ok then
-    return {
-      code = 125,
-      stdout = "",
-      stderr = tostring(job),
-    }
-  end
-
-  return job:wait()
-end
-
 function M.rmpath(path)
   local stat = vim.uv.fs_lstat(path)
 

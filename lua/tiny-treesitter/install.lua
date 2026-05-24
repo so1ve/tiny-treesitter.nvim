@@ -1,3 +1,4 @@
+local async = require("tiny-treesitter.async")
 local config = require("tiny-treesitter.config")
 local util = require("tiny-treesitter.util")
 
@@ -52,11 +53,18 @@ local function installed_revision(lang)
 end
 
 local function notify(message, level)
+  if vim.in_fast_event() then
+    vim.schedule(function()
+      notify(message, level)
+    end)
+    return
+  end
+
   vim.notify(message, level or vim.log.levels.INFO, { title = "treesitter install" })
 end
 
 local function run(cmd, opts, context)
-  local result = util.system(cmd, opts)
+  local result = async.system(cmd, opts)
 
   if result.code ~= 0 then
     local stderr = result.stderr and vim.trim(result.stderr) or ""
@@ -65,10 +73,20 @@ local function run(cmd, opts, context)
   end
 end
 
+local function concurrency(opts)
+  local requested = tonumber(opts.jobs or opts.concurrency)
+
+  if requested and requested > 0 then
+    return requested
+  end
+
+  return math.max(1, math.min(4, vim.uv.available_parallelism() or 1))
+end
+
 local function download(info, lang, cache_dir)
   local revision = info.revision or info.branch or "main"
   local url = info.url:gsub("%.git$", "")
-  local project_name = "tree-sitter-" .. lang
+  local project_name = "tree-sitter-" .. lang .. "-" .. tostring(vim.uv.hrtime())
   local tarball = vim.fs.joinpath(cache_dir, project_name .. ".tar.gz")
   local project_dir = vim.fs.joinpath(cache_dir, project_name)
   local tmp_dir = project_dir .. "-tmp"
@@ -215,6 +233,12 @@ local function needs_update(lang)
   return (info.revision or info.branch or "main") ~= installed_revision(lang)
 end
 
+local function fail(action, lang, err)
+  notify("Failed to " .. action .. " " .. lang .. ": " .. tostring(err), vim.log.levels.ERROR)
+
+  return false, tostring(err)
+end
+
 local function install_lang(lang, opts)
   opts = opts or {}
 
@@ -222,8 +246,7 @@ local function install_lang(lang, opts)
     local err = install_queries(get_install_info(lang), lang)
 
     if err then
-      notify("Failed to install queries for " .. lang .. ": " .. err, vim.log.levels.ERROR)
-      return false
+      return fail("install queries for", lang, err)
     end
 
     return true
@@ -237,8 +260,7 @@ local function install_lang(lang, opts)
     local err = install_queries(nil, lang)
 
     if err then
-      notify("Failed to install queries for " .. lang .. ": " .. err, vim.log.levels.ERROR)
-      return false
+      return fail("install queries for", lang, err)
     end
 
     notify("Installed queries for " .. lang)
@@ -258,8 +280,7 @@ local function install_lang(lang, opts)
     project_dir, revision, err = download(info, lang, cache_dir)
 
     if err then
-      notify("Failed to install " .. lang .. ": " .. err, vim.log.levels.ERROR)
-      return false
+      return fail("install", lang, err)
     end
   end
 
@@ -267,22 +288,19 @@ local function install_lang(lang, opts)
   local err = generate_parser(info, compile_dir, lang, opts.generate)
 
   if err then
-    notify("Failed to install " .. lang .. ": " .. err, vim.log.levels.ERROR)
-    return false
+    return fail("install", lang, err)
   end
 
   err = compile_parser(compile_dir, lang)
 
   if err then
-    notify("Failed to install " .. lang .. ": " .. err, vim.log.levels.ERROR)
-    return false
+    return fail("install", lang, err)
   end
 
   err = install_parser(compile_dir, lang)
 
   if err then
-    notify("Failed to install " .. lang .. ": " .. err, vim.log.levels.ERROR)
-    return false
+    return fail("install", lang, err)
   end
 
   util.write_file(parser_revision_file(lang), revision or "")
@@ -290,8 +308,7 @@ local function install_lang(lang, opts)
   err = install_queries(info, lang, project_dir)
 
   if err then
-    notify("Failed to install queries for " .. lang .. ": " .. err, vim.log.levels.ERROR)
-    return false
+    return fail("install queries for", lang, err)
   end
 
   if info and not info.path then
@@ -302,23 +319,73 @@ local function install_lang(lang, opts)
   return true
 end
 
-function M.install(languages, opts)
-  opts = opts or {}
-  languages = config.norm_languages(languages, { unsupported = true })
-
-  local ok = 0
+local function run_languages(languages, opts, runner)
+  local ok_count = 0
+  local failures = {}
+  local tasks = {}
 
   for _, lang in ipairs(languages) do
-    if install_lang(lang, opts) then
-      ok = ok + 1
+    tasks[#tasks + 1] = function()
+      return runner(lang, opts)
+    end
+  end
+
+  local results, errors = async.join(concurrency(opts), tasks)
+
+  for index, lang in ipairs(languages) do
+    local result = results[index]
+    local task_error = errors[index]
+
+    if task_error then
+      failures[lang] = task_error
+    elseif result and result[1] then
+      ok_count = ok_count + 1
+    else
+      failures[lang] = (result and result[2]) or "failed"
     end
   end
 
   if opts.summary and #languages > 1 then
-    notify(string.format("Installed %d/%d languages", ok, #languages))
+    notify(string.format("Installed %d/%d languages", ok_count, #languages))
   end
 
-  return ok == #languages
+  return ok_count == #languages, failures
+end
+
+local function start(task, opts)
+  opts = opts or {}
+
+  local result, failures = async.run(task, {
+    wait = opts.wait,
+    timeout = opts.timeout,
+    callback = function(err, success, callback_failures)
+      if err then
+        success = false
+        callback_failures = { error = tostring(err) }
+        notify(tostring(err), vim.log.levels.ERROR)
+      end
+
+      if opts.callback then
+        opts.callback(success, callback_failures)
+      end
+    end,
+  })
+
+  if opts.wait and result == false and failures and failures.error then
+    notify(failures.error, vim.log.levels.ERROR)
+  end
+
+  return result, failures
+end
+
+function M.install(languages, opts)
+  opts = opts or {}
+
+  return start(function()
+    local normalized = config.norm_languages(languages, { unsupported = true })
+
+    return run_languages(normalized, opts, install_lang)
+  end, opts)
 end
 
 function M.update(languages, opts)
@@ -328,30 +395,37 @@ function M.update(languages, opts)
     languages = "all"
   end
 
-  languages = config.norm_languages(languages, { missing = true, unsupported = true })
-  languages = vim.tbl_filter(needs_update, languages)
+  return start(function()
+    local normalized = config.norm_languages(languages, { missing = true, unsupported = true })
+    local pending = vim.tbl_filter(needs_update, normalized)
 
-  if #languages == 0 then
-    if opts.summary then
-      notify("All parsers are up to date")
+    if #pending == 0 then
+      if opts.summary then
+        notify("All parsers are up to date")
+      end
+
+      return true, {}
     end
 
-    return true
-  end
-
-  return M.install(languages, vim.tbl_extend("force", opts, { force = true }))
+    return run_languages(pending, vim.tbl_extend("force", opts, { force = true }), install_lang)
+  end, opts)
 end
 
 function M.uninstall(languages, opts)
   opts = opts or {}
-  languages = config.norm_languages(languages or "all", { missing = true, dependencies = true })
 
-  for _, lang in ipairs(languages) do
-    util.rmpath(parser_lib(lang))
-    util.rmpath(parser_revision_file(lang))
-    util.rmpath(vim.fs.joinpath(config.get_install_dir("queries"), lang))
-    notify("Uninstalled " .. lang)
-  end
+  return start(function()
+    local normalized = config.norm_languages(languages or "all", { missing = true, dependencies = true })
+
+    for _, lang in ipairs(normalized) do
+      util.rmpath(parser_lib(lang))
+      util.rmpath(parser_revision_file(lang))
+      util.rmpath(vim.fs.joinpath(config.get_install_dir("queries"), lang))
+      notify("Uninstalled " .. lang)
+    end
+
+    return true, {}
+  end, opts)
 end
 
 return M
