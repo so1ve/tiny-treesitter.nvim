@@ -72,13 +72,19 @@ require("tiny-treesitter").update()
 require("tiny-treesitter").uninstall("lua")
 ```
 
-Installs and updates are asynchronous by default. They run parser jobs concurrently with a small worker cap, so `:TSInstall` and `:TSUpdate` return without freezing the UI. Use `{ wait = true }` only in build hooks or scripts that must block until the operation finishes:
+Installs and updates are asynchronous by default. They run parser jobs concurrently, so `:TSInstall` and `:TSUpdate` return without freezing the UI. Use `{ wait = true }` only in build hooks or scripts that must block until the operation finishes:
 
 ```lua
 local ok = require("tiny-treesitter").install({ "lua", "vim" }, { wait = true })
 ```
 
 Set `auto_install = true` to install missing parsers when a buffer's `FileType` event is seen.
+
+## Documentation
+
+See `:help tiny-treesitter` for the full generated help text, or read [`doc/tiny-treesitter.txt`](./doc/tiny-treesitter.txt) directly.
+
+The help file is generated from Lua annotations with [`mini.doc`](https://github.com/nvim-mini/mini.doc).
 
 ## Notes
 
