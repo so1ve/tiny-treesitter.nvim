@@ -63,6 +63,7 @@ Lua API:
 ```lua
 require("tiny-treesitter").setup({
   install_dir = vim.fn.stdpath("data") .. "/site",
+  ensure_installed = { "lua", "vim", "vimdoc" },
   auto_install = false,
 })
 
@@ -71,14 +72,13 @@ require("tiny-treesitter").update()
 require("tiny-treesitter").uninstall("lua")
 ```
 
-Installs and updates are asynchronous by default. They run parser jobs concurrently
-with a small worker cap, so `:TSInstall` and `:TSUpdate` return without freezing the
-UI. Use `{ wait = true }` only in build hooks or scripts that must block until the
-operation finishes:
+Installs and updates are asynchronous by default. They run parser jobs concurrently with a small worker cap, so `:TSInstall` and `:TSUpdate` return without freezing the UI. Use `{ wait = true }` only in build hooks or scripts that must block until the operation finishes:
 
 ```lua
 local ok = require("tiny-treesitter").install({ "lua", "vim" }, { wait = true })
 ```
+
+Set `auto_install = true` to install missing parsers when a buffer's `FileType` event is seen.
 
 ## Notes
 
