@@ -171,7 +171,7 @@ function renderParsers(parsers, pins) {
 
     lines.push("    },");
 
-    for (const key of ["maintainers", "requires", "readme_note"]) {
+    for (const key of ["requires"]) {
       if (parser[key] !== undefined) {
         lines.push(`    ${key} = ${renderLuaValue(parser[key])},`);
       }
