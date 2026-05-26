@@ -26,6 +26,17 @@ For configs that already use Neovim's native Tree-sitter APIs directly, the rest
 
 It does **not** provide highlighting modules, indentation modules, textobjects, or feature toggles.
 
+## Comparison
+
+| Project | Scope | Registry / queries | Parser build model | Best for |
+| --- | --- | --- | --- | --- |
+| `tiny-treesitter.nvim` | Tiny installer-only surface | Bundled Arborist registry and queries | `curl` GitHub tarball → `tar` extract → `tree-sitter build` | Configs that want fast parser/query management without git clones, manager UI, highlight modules, indentation modules, or textobjects. |
+| `nvim-treesitter` | Full Tree-sitter plugin ecosystem | Own parser/query data plus feature modules | Installer plus highlight, indent, textobject, and module integrations | Users who want the traditional all-in-one Tree-sitter plugin surface. |
+| `arborist.nvim` | Automatic parser manager | Bundled Arborist registry and queries | WASM-first, then native build fallback | Users who want automatic parser install/start behavior managed by one plugin. |
+| `tree-sitter-manager.nvim` | Parser manager with TUI | Bundled queries plus user-overridable parser sources | Clone parser repos → `tree-sitter` CLI build | Users who want an interactive manager UI, custom/fork parser sources, and optional auto-install/highlight behavior. |
+
+tiny-treesitter.nvim intentionally keeps the smallest feature set in this comparison. It uses GitHub tarballs instead of `git clone`, avoids manager UI and runtime feature modules, runs parser jobs concurrently, and leaves starting Tree-sitter, highlighting, indentation, and higher-level modules to your own config or other plugins.
+
 ## Requirements
 
 - Neovim 0.12+
