@@ -208,16 +208,8 @@ local function install_parser(compile_dir, lang)
   end
 end
 
-local function install_queries(info, lang, project_dir)
-  local source
-
-  if info and info.queries and info.path then
-    source = vim.fs.joinpath(vim.fs.normalize(info.path), info.queries)
-  elseif info and info.queries and project_dir then
-    source = vim.fs.joinpath(project_dir, info.queries)
-  else
-    source = query_source(lang)
-  end
+local function install_queries(lang)
+  local source = query_source(lang)
 
   if not source or not vim.uv.fs_stat(source) then
     return nil
@@ -246,7 +238,7 @@ local function install_lang_inner(lang, opts)
   opts = opts or {}
 
   if not opts.force and vim.uv.fs_stat(parser_lib(lang)) and not needs_update(lang) then
-    local err = install_queries(get_install_info(lang), lang)
+    local err = install_queries(lang)
 
     if err then
       return fail("install queries for", lang, err)
@@ -260,7 +252,7 @@ local function install_lang_inner(lang, opts)
   local revision
 
   if not info then
-    local err = install_queries(nil, lang)
+    local err = install_queries(lang)
 
     if err then
       return fail("install queries for", lang, err)
@@ -309,7 +301,7 @@ local function install_lang_inner(lang, opts)
 
   util.write_file(parser_revision_file(lang), revision or "")
 
-  err = install_queries(info, lang, project_dir)
+  err = install_queries(lang)
 
   if err then
     return fail("install queries for", lang, err)
