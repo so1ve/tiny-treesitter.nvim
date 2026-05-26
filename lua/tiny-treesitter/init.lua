@@ -39,8 +39,7 @@ local TinyTreesitter = {}
 --- prepended to 'runtimepath'.
 ---
 ---@field ensure_installed string|string[]|nil Parser names to install
---- asynchronously when setup() is called. Supports the same language expansion
---- as |tiny-treesitter.install()|, including `"all"`.
+--- asynchronously when setup() is called.
 ---
 ---@field auto_install boolean|nil Install a missing parser asynchronously when a
 --- normal buffer's |FileType| event resolves to that parser. Special buffers like
@@ -106,7 +105,7 @@ end
 ---@field generate boolean|nil Run `tree-sitter generate` before building. Used
 --- by |:TSInstallFromGrammar|.
 ---
----@param languages string|string[] Parser name, parser names, or `"all"`.
+---@param languages string|string[] Parser name or parser names.
 ---@param opts TinyTreesitterInstallOptions|nil Install options.
 ---@return any
 ---@tag tiny-treesitter.install()

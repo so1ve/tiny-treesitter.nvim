@@ -42,8 +42,7 @@ Fields ~
 prepended to 'runtimepath'.
 
 {ensure_installed} `(string|string[]|nil)` Parser names to install
-asynchronously when setup() is called. Supports the same language expansion
-as |tiny-treesitter.install()|, including `"all"`.
+asynchronously when setup() is called.
 
 {auto_install} `(boolean|nil)` Install a missing parser asynchronously when a
 normal buffer's |FileType| event resolves to that parser. Special buffers like
@@ -114,7 +113,7 @@ revision matches. Also set by |:TSInstall!|.
 by |:TSInstallFromGrammar|.
 
 Parameters ~
-{languages} `(string|string[])` Parser name, parser names, or `"all"`.
+{languages} `(string|string[])` Parser name or parser names.
 {opts} `(TinyTreesitterInstallOptions|nil)` Install options.
 Return ~
 `(any)`

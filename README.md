@@ -95,7 +95,7 @@ Setup options:
 | Option | Default | Description |
 | --- | --- | --- |
 | `install_dir` | `vim.fs.joinpath(vim.fn.stdpath("data"), "site")` | Runtime directory that receives `parser/`, `parser-info/`, and `queries/`. |
-| `ensure_installed` | `{}` | Parser names to install when `setup()` runs. Supports parser names and `"all"`. |
+| `ensure_installed` | `{}` | Parser names to install when `setup()` runs. |
 | `auto_install` | `false` | Install missing parsers when a normal buffer's `FileType` event resolves to that parser. |
 | `auto_update` | `true` | Check installed parser revisions against the bundled registry on startup and rebuild outdated parsers. |
 | `ignore` | `{}` | Parser names or filetypes to skip for automatic install/update only. Explicit installs are still allowed. |

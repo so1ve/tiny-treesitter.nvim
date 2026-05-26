@@ -423,7 +423,7 @@ function M.update(languages, opts)
   opts = opts or {}
 
   if not languages or (type(languages) == "table" and #languages == 0) then
-    languages = "all"
+    languages = config.get_installed("parsers")
   end
 
   return start(function()
@@ -445,8 +445,12 @@ end
 function M.uninstall(languages, opts)
   opts = opts or {}
 
+  if not languages or (type(languages) == "table" and #languages == 0) then
+    languages = config.get_installed("parsers")
+  end
+
   return start(function()
-    local normalized = config.norm_languages(languages or "all", { missing = true, dependencies = true })
+    local normalized = config.norm_languages(languages, { missing = true, dependencies = true })
 
     for _, lang in ipairs(normalized) do
       util.rmpath(parser_lib(lang))

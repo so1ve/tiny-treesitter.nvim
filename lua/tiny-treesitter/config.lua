@@ -51,10 +51,25 @@ function M.setup(opts)
           return
         end
 
-        local parser = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
+        local filetype = vim.bo[event.buf].filetype
+        local parser = vim.treesitter.language.get_lang(filetype)
 
-        if not parser or is_ignored(vim.bo[event.buf].filetype) or is_ignored(parser) then
+        if not parser or is_ignored(filetype) or is_ignored(parser) then
           return
+        end
+
+        local parsers = require("tiny-treesitter.parsers")
+
+        -- Some registered filetype aliases resolve to query-only language names
+        -- that are not standalone parser registry entries, e.g. JavaScript can
+        -- resolve to `ecma`. Fall back to the original filetype when it is the
+        -- installable parser name.
+        if not parsers[parser] then
+          if not parsers[filetype] then
+            return
+          end
+
+          parser = filetype
         end
 
         if vim.list_contains(M.get_installed("parsers"), parser) then
@@ -125,10 +140,6 @@ function M.norm_languages(languages, skip)
 
   if type(languages) == "string" then
     languages = { languages }
-  end
-
-  if vim.list_contains(languages, "all") then
-    languages = skip.missing and M.get_installed() or M.get_available()
   end
 
   local installed = M.get_installed()
