@@ -45,6 +45,9 @@ tiny-treesitter.nvim intentionally keeps the smallest feature set in this compar
 - `tree-sitter` CLI 0.26.1+
 - C compiler available to `tree-sitter build`
 
+Run `:checkhealth tiny-treesitter` to verify the local toolchain, bundled
+registry, bundled queries, and installed parser revisions.
+
 ## Installation
 
 ### `lazy.nvim`
