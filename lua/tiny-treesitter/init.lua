@@ -5,10 +5,6 @@
 --- textobjects, or feature toggles. Start Tree-sitter with Neovim's native APIs
 --- after installing parsers.
 ---
---- Generated help source lives in `lua/tiny-treesitter/init.lua`. Run
---- `scripts/minidoc.lua` with |mini.doc| to update `doc/tiny-treesitter.txt`;
---- do not edit the generated help file manually.
----
 --- # Requirements ~
 ---
 --- - Neovim 0.12+
@@ -29,26 +25,6 @@
 ---
 --- See |tiny-treesitter.setup()| for setup options and
 --- |tiny-treesitter.install()| for install/update options.
----
---- # Installation layout ~
----
---- >text
----   {install_dir}/parser/{lang}.so
----   {install_dir}/parser-info/{lang}.revision
----   {install_dir}/queries/{lang}/
---- <
----
---- Like upstream nvim-treesitter, parser artifacts use `.so` on all platforms.
---- The Tree-sitter build output is always `parser.so`, and the installed target
---- is `{lang}.so`.
----
---- # Generated data ~
----
---- `lua/tiny-treesitter/parsers.lua` and `plugin/filetypes.lua` are generated
---- from `arborist-ts/arborist.nvim/registry` with `scripts/update-registry.mjs`.
----
---- `runtime/queries` is vendored from `arborist-ts/queries` with
---- `scripts/update-queries.mjs`.
 ---@tag tiny-treesitter
 
 local TinyTreesitter = {}
@@ -64,8 +40,7 @@ local TinyTreesitter = {}
 ---
 ---@field ensure_installed string|string[]|nil Parser names to install
 --- asynchronously when setup() is called. Supports the same language expansion
---- as |tiny-treesitter.install()|, including `"all"` and tier names:
---- `"stable"`, `"unstable"`, `"unmaintained"`, and `"unsupported"`.
+--- as |tiny-treesitter.install()|, including `"all"`.
 ---
 ---@field auto_install boolean|nil Install a missing parser asynchronously when a
 --- normal buffer's |FileType| event resolves to that parser. Special buffers like
@@ -80,7 +55,6 @@ end
 
 --- Get available parser names.
 ---
----@param tier number|nil Numeric tier filter from generated parser data.
 ---@return string[]
 ---@tag tiny-treesitter.get_available()
 function TinyTreesitter.get_available(...)
@@ -124,7 +98,7 @@ end
 ---@field generate boolean|nil Run `tree-sitter generate` before building. Used
 --- by |:TSInstallFromGrammar|.
 ---
----@param languages string|string[] Parser name, parser names, `"all"`, or tier name.
+---@param languages string|string[] Parser name, parser names, or `"all"`.
 ---@param opts TinyTreesitterInstallOptions|nil Install options.
 ---@return any
 ---@tag tiny-treesitter.install()
