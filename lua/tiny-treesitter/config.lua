@@ -1,7 +1,5 @@
 local M = {}
 
-M.tiers = { "stable", "unstable", "unmaintained", "unsupported" }
-
 local config = {
   install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
   ensure_installed = {},
@@ -95,7 +93,7 @@ function M.get_installed(kind)
   return vim.tbl_keys(installed)
 end
 
-function M.get_available(tier)
+function M.get_available()
   vim.api.nvim_exec_autocmds("User", { pattern = "TSUpdate" })
 
   local parsers = require("tiny-treesitter.parsers")
@@ -103,28 +101,7 @@ function M.get_available(tier)
 
   table.sort(languages)
 
-  if tier then
-    languages = vim.tbl_filter(function(lang)
-      return parsers[lang] and parsers[lang].tier == tier
-    end, languages)
-  end
-
   return languages
-end
-
-local function expand_tiers(languages)
-  local expanded = vim.deepcopy(languages)
-
-  for level, tier in ipairs(M.tiers) do
-    if vim.list_contains(expanded, tier) then
-      expanded = vim.tbl_filter(function(lang)
-        return lang ~= tier
-      end, expanded)
-      vim.list_extend(expanded, M.get_available(level))
-    end
-  end
-
-  return expanded
 end
 
 function M.norm_languages(languages, skip)
@@ -141,8 +118,6 @@ function M.norm_languages(languages, skip)
   if vim.list_contains(languages, "all") then
     languages = skip.missing and M.get_installed() or M.get_available()
   end
-
-  languages = expand_tiers(languages)
 
   local installed = M.get_installed()
 
@@ -165,15 +140,9 @@ function M.norm_languages(languages, skip)
       return true
     end
 
-    vim.notify("Skipping unsupported parser: " .. lang, vim.log.levels.WARN)
+    vim.notify("Skipping unknown parser: " .. lang, vim.log.levels.WARN)
     return false
   end, languages)
-
-  if skip.unsupported then
-    languages = vim.tbl_filter(function(lang)
-      return not (parsers[lang] and parsers[lang].tier == 4)
-    end, languages)
-  end
 
   if not skip.dependencies then
     for _, lang in ipairs(vim.deepcopy(languages)) do
