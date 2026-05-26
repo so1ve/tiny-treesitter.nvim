@@ -67,10 +67,6 @@ function M.setup(opts)
   end
 end
 
-function M.get()
-  return config
-end
-
 function M.get_install_dir(name)
   local dir = vim.fs.joinpath(config.install_dir, name)
 
