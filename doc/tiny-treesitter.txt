@@ -53,6 +53,10 @@ plugin UI, quickfix, terminal, and help buffers are ignored. Default: `false`.
 revisions and update outdated parsers asynchronously when setup() is called.
 Default: `true`.
 
+{ignore} `(string[]|nil)` Parser names or filetypes to skip for automatic
+install/update. Explicit |tiny-treesitter.install()| and |:TSInstall| calls
+are not ignored. Default: `{}`.
+
 Parameters ~
 {opts} `(TinyTreesitterConfig|nil)` Setup options.
 Return ~

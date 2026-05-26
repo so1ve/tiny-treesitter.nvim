@@ -5,6 +5,7 @@ local config = {
   ensure_installed = {},
   auto_install = false,
   auto_update = true,
+  ignore = {},
 }
 
 local install_dir_added = false
@@ -12,6 +13,10 @@ local auto_update_checked = false
 
 local function is_normal_buffer(buf)
   return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == ""
+end
+
+local function is_ignored(name)
+  return vim.list_contains(config.ignore, name)
 end
 
 function M.setup(opts)
@@ -29,12 +34,12 @@ function M.setup(opts)
   end
 
   if opts.ensure_installed then
-    require("tiny-treesitter.install").install(config.ensure_installed, { summary = true })
+    require("tiny-treesitter.install").install(config.ensure_installed, { summary = true, ignore = true })
   end
 
   if config.auto_update and not auto_update_checked then
     auto_update_checked = true
-    require("tiny-treesitter.install").update(nil)
+    require("tiny-treesitter.install").update(nil, { ignore = true })
   end
 
   if config.auto_install then
@@ -48,7 +53,11 @@ function M.setup(opts)
 
         local parser = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
 
-        if not parser or vim.list_contains(M.get_installed("parsers"), parser) then
+        if not parser or is_ignored(vim.bo[event.buf].filetype) or is_ignored(parser) then
+          return
+        end
+
+        if vim.list_contains(M.get_installed("parsers"), parser) then
           return
         end
 
@@ -157,6 +166,12 @@ function M.norm_languages(languages, skip)
         vim.list_extend(languages, parsers[lang].requires)
       end
     end
+  end
+
+  if skip.ignore then
+    languages = vim.tbl_filter(function(lang)
+      return not is_ignored(lang)
+    end, languages)
   end
 
   return vim.list.unique(languages)

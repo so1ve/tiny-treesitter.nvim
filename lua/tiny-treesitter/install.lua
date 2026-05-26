@@ -425,7 +425,7 @@ function M.install(languages, opts)
   opts = opts or {}
 
   return start(function()
-    local normalized = config.norm_languages(languages)
+    local normalized = config.norm_languages(languages, { ignore = opts.ignore })
 
     return run_languages(normalized, opts, install_lang)
   end, opts)
@@ -439,7 +439,7 @@ function M.update(languages, opts)
   end
 
   return start(function()
-    local normalized = config.norm_languages(languages, { missing = true })
+    local normalized = config.norm_languages(languages, { missing = true, ignore = opts.ignore })
     local pending = vim.tbl_filter(needs_update, normalized)
 
     if #pending == 0 then

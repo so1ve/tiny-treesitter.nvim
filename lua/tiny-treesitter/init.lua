@@ -50,6 +50,10 @@ local TinyTreesitter = {}
 --- revisions and update outdated parsers asynchronously when setup() is called.
 --- Default: `true`.
 ---
+---@field ignore string[]|nil Parser names or filetypes to skip for automatic
+--- install/update. Explicit |tiny-treesitter.install()| and |:TSInstall| calls
+--- are not ignored. Default: `{}`.
+---
 ---@param opts TinyTreesitterConfig|nil Setup options.
 ---@return any
 ---@tag tiny-treesitter.setup()

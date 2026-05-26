@@ -68,6 +68,7 @@ require("tiny-treesitter").setup({
   ensure_installed = { "lua", "vim", "vimdoc" },
   auto_install = false,
   auto_update = true,
+  ignore = {},
 })
 
 require("tiny-treesitter").install({ "lua", "typescript", "vue" })
@@ -75,15 +76,26 @@ require("tiny-treesitter").update()
 require("tiny-treesitter").uninstall("lua")
 ```
 
+Setup options:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `install_dir` | `vim.fs.joinpath(vim.fn.stdpath("data"), "site")` | Runtime directory that receives `parser/`, `parser-info/`, and `queries/`. |
+| `ensure_installed` | `{}` | Parser names to install when `setup()` runs. Supports parser names and `"all"`. |
+| `auto_install` | `false` | Install missing parsers when a normal buffer's `FileType` event resolves to that parser. |
+| `auto_update` | `true` | Check installed parser revisions against the bundled registry on startup and rebuild outdated parsers. |
+| `ignore` | `{}` | Parser names or filetypes to skip for automatic install/update only. Explicit installs are still allowed. |
+
 Installs and updates are asynchronous by default. They run parser jobs concurrently, so `:TSInstall` and `:TSUpdate` return without freezing the UI. Use `{ wait = true }` only in build hooks or scripts that must block until the operation finishes:
 
-```lua
-local ok = require("tiny-treesitter").install({ "lua", "vim" }, { wait = true })
-```
-
-Set `auto_install = true` to install missing parsers when a buffer's `FileType` event is seen.
-
-`auto_update = true` is enabled by default. On setup, tiny-treesitter checks installed parser revision files against the bundled registry and only rebuilds parsers whose bundled revision changed. This is a local check; it does not poll GitHub for newer parser revisions.
+> [!INFO]
+>
+> To control install behavior, use the Lua API instead of adding more setup
+> options. `setup()` intentionally exposes only a minimal compatibility surface
+> for nvim-treesitter-style configs: where to install parsers, what to install
+> automatically, and what automatic work to skip. Fine-grained controls such as
+> waiting, summaries, forced reinstalls, grammar generation, and job limits belong
+> to explicit `install()` / `update()` calls.
 
 ## Documentation
 
