@@ -4,9 +4,11 @@ local config = {
   install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
   ensure_installed = {},
   auto_install = false,
+  auto_update = true,
 }
 
 local install_dir_added = false
+local auto_update_checked = false
 
 local function is_normal_buffer(buf)
   return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == ""
@@ -28,6 +30,11 @@ function M.setup(opts)
 
   if opts.ensure_installed then
     require("tiny-treesitter.install").install(config.ensure_installed, { summary = true })
+  end
+
+  if config.auto_update and not auto_update_checked then
+    auto_update_checked = true
+    require("tiny-treesitter.install").update(nil)
   end
 
   if config.auto_install then

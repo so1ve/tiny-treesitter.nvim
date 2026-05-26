@@ -46,6 +46,10 @@ local TinyTreesitter = {}
 --- normal buffer's |FileType| event resolves to that parser. Special buffers like
 --- plugin UI, quickfix, terminal, and help buffers are ignored. Default: `false`.
 ---
+---@field auto_update boolean|nil Check installed parsers against bundled registry
+--- revisions and update outdated parsers asynchronously when setup() is called.
+--- Default: `true`.
+---
 ---@param opts TinyTreesitterConfig|nil Setup options.
 ---@return any
 ---@tag tiny-treesitter.setup()

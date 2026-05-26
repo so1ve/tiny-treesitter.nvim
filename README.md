@@ -2,7 +2,9 @@
 
 Tiny Tree-sitter parser management for Neovim.
 
-This plugin keeps the fast parser installation workflow inspired by `nvim-treesitter` while dropping its feature modules. It vendors `arborist.nvim` registry data plus `arborist.nvim` query files, then exposes a small installer API for existing configs.
+This plugin keeps the fast parser installation workflow inspired by `nvim-treesitter` while dropping its feature modules. It bundles Arborist registry data plus Arborist query files, then exposes a small installer API for existing configs.
+
+The bundled data is intentional: parser revisions and query files move together with the plugin version. Updating tiny-treesitter.nvim updates the local registry and query bundle; installed parsers can then be reconciled against that bundled registry without fetching remote metadata first.
 
 ## Why
 
@@ -18,7 +20,7 @@ curl GitHub tarball
 For configs that already use Neovim's native Tree-sitter APIs directly, the rest of `nvim-treesitter` is unnecessary. tiny-treesitter.nvim keeps only the installer surface:
 
 - parser registry generated from `arborist-ts/arborist.nvim/registry`
-- Arborist query files
+- bundled Arborist query files
 - `:TSInstall`, `:TSUpdate`, `:TSUninstall`, `:TSInstallInfo`
 - `require("tiny-treesitter").install/update/uninstall/get_available/get_installed/setup`
 
@@ -65,6 +67,7 @@ require("tiny-treesitter").setup({
   install_dir = vim.fn.stdpath("data") .. "/site",
   ensure_installed = { "lua", "vim", "vimdoc" },
   auto_install = false,
+  auto_update = true,
 })
 
 require("tiny-treesitter").install({ "lua", "typescript", "vue" })
@@ -79,6 +82,8 @@ local ok = require("tiny-treesitter").install({ "lua", "vim" }, { wait = true })
 ```
 
 Set `auto_install = true` to install missing parsers when a buffer's `FileType` event is seen.
+
+`auto_update = true` is enabled by default. On setup, tiny-treesitter checks installed parser revision files against the bundled registry and only rebuilds parsers whose bundled revision changed. This is a local check; it does not poll GitHub for newer parser revisions.
 
 ## Documentation
 
