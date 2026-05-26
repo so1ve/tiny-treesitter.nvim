@@ -137,12 +137,6 @@ function M.norm_languages(languages, skip)
 
   local installed = M.get_installed()
 
-  if skip.installed then
-    languages = vim.tbl_filter(function(lang)
-      return not vim.list_contains(installed, lang)
-    end, languages)
-  end
-
   if skip.missing then
     languages = vim.tbl_filter(function(lang)
       return vim.list_contains(installed, lang)
