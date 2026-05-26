@@ -146,17 +146,13 @@ local function generate_parser(info, compile_dir, lang, force_generate)
     return nil
   end
 
-  local from_json = info.generate_from_json ~= false
   local cmd = {
     "tree-sitter",
     "generate",
     "--abi",
     tostring(vim.treesitter.language_version),
+    "src/grammar.json",
   }
-
-  if from_json then
-    table.insert(cmd, "src/grammar.json")
-  end
 
   return run(cmd, {
     cwd = compile_dir,
