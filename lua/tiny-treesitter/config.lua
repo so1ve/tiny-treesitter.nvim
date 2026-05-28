@@ -19,6 +19,34 @@ local function is_ignored(name)
   return vim.list_contains(config.ignore, name)
 end
 
+local function resolve_language(lang, parsers)
+  if parsers[lang] then
+    return lang
+  end
+
+  local resolved = vim.treesitter.language.get_lang(lang)
+
+  if resolved and parsers[resolved] then
+    return resolved
+  end
+
+  return lang
+end
+
+local function is_ignored_language(lang, parsers)
+  if is_ignored(lang) then
+    return true
+  end
+
+  for _, ignored in ipairs(config.ignore) do
+    if resolve_language(ignored, parsers) == lang then
+      return true
+    end
+  end
+
+  return false
+end
+
 function M.setup(opts)
   opts = opts or {}
 
@@ -142,6 +170,12 @@ function M.norm_languages(languages, skip)
     languages = { languages }
   end
 
+  local parsers = require("tiny-treesitter.parsers")
+
+  languages = vim.tbl_map(function(lang)
+    return resolve_language(lang, parsers)
+  end, languages)
+
   local installed = M.get_installed()
 
   if skip.missing then
@@ -149,8 +183,6 @@ function M.norm_languages(languages, skip)
       return vim.list_contains(installed, lang)
     end, languages)
   end
-
-  local parsers = require("tiny-treesitter.parsers")
 
   languages = vim.tbl_filter(function(lang)
     if parsers[lang] then
@@ -171,7 +203,7 @@ function M.norm_languages(languages, skip)
 
   if skip.ignore then
     languages = vim.tbl_filter(function(lang)
-      return not is_ignored(lang)
+      return not is_ignored_language(lang, parsers)
     end, languages)
   end
 
