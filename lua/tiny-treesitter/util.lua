@@ -1,5 +1,21 @@
 local M = {}
 
+function M.mkdirp(path)
+  local ok, result = pcall(vim.fn.mkdir, path, "p")
+
+  if ok and result == 1 then
+    return nil
+  end
+
+  local stat = vim.uv.fs_stat(path)
+
+  if stat and stat.type == "directory" then
+    return nil
+  end
+
+  return ok and tostring(result) or tostring(result)
+end
+
 function M.read_file(path)
   local file = io.open(path, "r")
 
@@ -15,7 +31,11 @@ function M.read_file(path)
 end
 
 function M.write_file(path, content)
-  vim.fn.mkdir(vim.fs.dirname(path), "p")
+  local err = M.mkdirp(vim.fs.dirname(path))
+
+  if err then
+    error(err)
+  end
 
   local file = assert(io.open(path, "w"))
 
@@ -28,6 +48,18 @@ function M.rmpath(path)
 
   if not stat then
     return nil
+  end
+
+  if stat.type == "link" or vim.uv.fs_readlink(path) then
+    local ok, err = vim.uv.fs_unlink(path)
+
+    if ok then
+      return nil
+    end
+
+    ok, err = vim.uv.fs_rmdir(path)
+
+    return ok and nil or err
   end
 
   if stat.type == "directory" then
@@ -50,7 +82,11 @@ function M.rmpath(path)
 end
 
 function M.copy_file(src, dest)
-  vim.fn.mkdir(vim.fs.dirname(dest), "p")
+  local err = M.mkdirp(vim.fs.dirname(dest))
+
+  if err then
+    return err
+  end
 
   local ok, err = vim.uv.fs_copyfile(src, dest)
 
@@ -58,8 +94,17 @@ function M.copy_file(src, dest)
 end
 
 function M.copy_dir(src, dest)
-  M.rmpath(dest)
-  vim.fn.mkdir(dest, "p")
+  local err = M.rmpath(dest)
+
+  if err then
+    return err
+  end
+
+  err = M.mkdirp(dest)
+
+  if err then
+    return err
+  end
 
   for name in vim.fs.dir(src) do
     local from = vim.fs.joinpath(src, name)
@@ -83,16 +128,62 @@ function M.copy_dir(src, dest)
 end
 
 function M.link_or_copy_dir(src, dest)
-  M.rmpath(dest)
-  vim.fn.mkdir(vim.fs.dirname(dest), "p")
+  src = vim.fs.normalize(src)
+  dest = vim.fs.normalize(dest)
 
-  local ok = vim.uv.fs_symlink(src, dest, { dir = true, junction = true })
-
-  if ok then
+  if src == dest then
     return nil
   end
 
-  return M.copy_dir(src, dest)
+  local parent = vim.fs.dirname(dest)
+  local err = M.mkdirp(parent)
+
+  if err then
+    return err
+  end
+
+  local tmp = string.format("%s.tmp.%s.%s", dest, tostring(vim.uv.os_getpid()), tostring(vim.uv.hrtime()))
+
+  M.rmpath(tmp)
+
+  local ok = vim.uv.fs_symlink(src, tmp, { dir = true, junction = true })
+
+  if not ok then
+    err = M.copy_dir(src, tmp)
+
+    if err then
+      M.rmpath(tmp)
+      return err
+    end
+  end
+
+  local backup
+  if vim.uv.fs_lstat(dest) then
+    backup = string.format("%s.old.%s.%s", dest, tostring(vim.uv.os_getpid()), tostring(vim.uv.hrtime()))
+    local renamed_old, rename_old_err = vim.uv.fs_rename(dest, backup)
+
+    if not renamed_old then
+      M.rmpath(tmp)
+      return rename_old_err
+    end
+  end
+
+  ok, err = vim.uv.fs_rename(tmp, dest)
+
+  if ok then
+    if backup then
+      M.rmpath(backup)
+    end
+
+    return nil
+  end
+
+  if backup then
+    vim.uv.fs_rename(backup, dest)
+  end
+
+  M.rmpath(tmp)
+  return err
 end
 
 return M

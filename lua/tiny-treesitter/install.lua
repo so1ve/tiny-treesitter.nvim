@@ -6,6 +6,9 @@ local M = {}
 
 local installing = {}
 local install_results = {}
+local query_lock_timeout = 60000
+local query_lock_stale_after = 300000
+local query_lock_poll = 20
 
 local function parser_lib(lang)
   return vim.fs.joinpath(config.get_install_dir("parser"), lang .. ".so")
@@ -48,6 +51,65 @@ local function query_source(lang)
 
   if vim.uv.fs_stat(path) then
     return path
+  end
+end
+
+local function with_query_lock(lang, fn)
+  local safe_lang = lang:gsub("[^%w_.-]", "_")
+  local lock_dir = vim.fs.joinpath(config.get_install_dir("queries"), ".locks", safe_lang .. ".lock")
+  local err = util.mkdirp(vim.fs.dirname(lock_dir))
+
+  if err then
+    return err
+  end
+
+  local deadline = vim.uv.hrtime() + query_lock_timeout * 1000000
+
+  while true do
+    local ok, mkdir_err = vim.uv.fs_mkdir(lock_dir, 448)
+
+    if ok then
+      local inner_err
+      local ran, call_err = pcall(function()
+        inner_err = fn()
+      end)
+      local unlock_err = util.rmpath(lock_dir)
+
+      if not ran then
+        error(call_err)
+      end
+
+      return inner_err or unlock_err
+    end
+
+    local stat = vim.uv.fs_lstat(lock_dir)
+
+    if not stat then
+      -- Released between mkdir and lstat; retry immediately.
+    elseif stat.type ~= "directory" then
+      return "query lock path is not a directory: " .. lock_dir
+    elseif vim.uv.hrtime() > deadline then
+      return mkdir_err or "timed out waiting for query lock: " .. lock_dir
+    elseif stat.mtime and (os.time() - stat.mtime.sec) * 1000 > query_lock_stale_after then
+      local reap = string.format("%s.reap.%s.%s", lock_dir, tostring(vim.uv.os_getpid()), tostring(vim.uv.hrtime()))
+      local moved = vim.uv.fs_rename(lock_dir, reap)
+
+      if moved then
+        local remove_err = util.rmpath(reap)
+
+        if remove_err then
+          return remove_err
+        end
+      else
+        vim.wait(query_lock_poll, function()
+          return false
+        end)
+      end
+    else
+      vim.wait(query_lock_poll, function()
+        return false
+      end)
+    end
   end
 end
 
@@ -115,7 +177,11 @@ local function download(info, lang, cache_dir)
     return nil, revision, err
   end
 
-  vim.fn.mkdir(tmp_dir, "p")
+  err = util.mkdirp(tmp_dir)
+
+  if err then
+    return nil, revision, err
+  end
 
   err = run({ "tar", "-xzf", project_name .. ".tar.gz", "-C", project_name .. "-tmp" }, {
     cwd = cache_dir,
@@ -211,7 +277,9 @@ local function install_queries(lang)
     return nil
   end
 
-  return util.link_or_copy_dir(source, vim.fs.joinpath(config.get_install_dir("queries"), lang))
+  return with_query_lock(lang, function()
+    return util.link_or_copy_dir(source, vim.fs.joinpath(config.get_install_dir("queries"), lang))
+  end)
 end
 
 local function needs_update(lang)
@@ -265,9 +333,11 @@ local function install_lang_inner(lang, opts)
   else
     local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "tiny-treesitter")
 
-    vim.fn.mkdir(cache_dir, "p")
+    local err = util.mkdirp(cache_dir)
 
-    local err
+    if err then
+      return fail("install", lang, err)
+    end
 
     project_dir, revision, err = download(info, lang, cache_dir)
 
@@ -451,15 +521,23 @@ function M.uninstall(languages, opts)
 
   return start(function()
     local normalized = config.norm_languages(languages, { missing = true, dependencies = true })
+    local failures = {}
 
     for _, lang in ipairs(normalized) do
       util.rmpath(parser_lib(lang))
       util.rmpath(parser_revision_file(lang))
-      util.rmpath(vim.fs.joinpath(config.get_install_dir("queries"), lang))
-      notify("Uninstalled " .. lang)
+      local err = with_query_lock(lang, function()
+        return util.rmpath(vim.fs.joinpath(config.get_install_dir("queries"), lang))
+      end)
+
+      if err then
+        failures[lang] = err
+      else
+        notify("Uninstalled " .. lang)
+      end
     end
 
-    return true, {}
+    return next(failures) == nil, failures
   end, opts)
 end
 

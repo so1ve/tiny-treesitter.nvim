@@ -1,4 +1,5 @@
 local M = {}
+local util = require("tiny-treesitter.util")
 
 local config = {
   install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
@@ -112,8 +113,11 @@ end
 
 function M.get_install_dir(name)
   local dir = vim.fs.joinpath(config.install_dir, name)
+  local err = util.mkdirp(dir)
 
-  vim.fn.mkdir(dir, "p")
+  if err then
+    error(err)
+  end
 
   return dir
 end
@@ -141,7 +145,9 @@ function M.get_installed(kind)
     local query_dir = M.get_install_dir("queries")
 
     for file in vim.fs.dir(query_dir) do
-      installed[file] = true
+      if file ~= ".locks" and not file:find("%.tmp%.") and not file:find("%.old%.") then
+        installed[file] = true
+      end
     end
   end
 
