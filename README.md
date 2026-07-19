@@ -2,7 +2,7 @@
 
 Tiny Tree-sitter parser management for Neovim.
 
-This plugin keeps the fast parser installation workflow inspired by `nvim-treesitter` while dropping its feature modules. It bundles Arborist registry data plus Arborist query files, then exposes a small installer API for existing configs.
+This plugin keeps the fast parser installation workflow inspired by `nvim-treesitter` behind a small installer API. Its bundled parser registry, filetype aliases, and queries come from pinned nvim-treesitter and Arborist revisions. nvim-treesitter entries are kept on conflicts, while Arborist adds missing languages.
 
 The bundled data is intentional: parser revisions and query files move together with the plugin version. Updating tiny-treesitter.nvim updates the local registry and query bundle; installed parsers can then be reconciled against that bundled registry without fetching remote metadata first.
 
@@ -17,10 +17,10 @@ curl GitHub tarball
 → install parser
 ```
 
-For configs that already use Neovim's native Tree-sitter APIs directly, the rest of `nvim-treesitter` is unnecessary. tiny-treesitter.nvim keeps only the installer surface:
+For configs that use Neovim's native Tree-sitter APIs directly, tiny-treesitter.nvim keeps only the installer surface:
 
-- parser registry generated from `arborist-ts/arborist.nvim/registry`
-- bundled Arborist query files
+- parser registry, filetype aliases, and queries vendored from `nvim-treesitter`
+- parser and query additions from one Arborist commit when their language is absent upstream
 - `:TSInstall`, `:TSUpdate`, `:TSUninstall`, `:TSInstallInfo`
 - `require("tiny-treesitter").install/update/uninstall/get_available/get_installed/setup`
 
@@ -104,12 +104,12 @@ Installs and updates are asynchronous by default. They run parser jobs concurren
 
 | Project | Scope | Registry / queries | Parser build model | Best for |
 | --- | --- | --- | --- | --- |
-| `tiny-treesitter.nvim` | Tiny installer-only surface | Bundled Arborist registry and queries | `curl` GitHub tarball → `tar` extract → `tree-sitter build` | Configs that want fast parser/query management without git clones, manager UI, highlight modules, indentation modules, or textobjects. |
-| `nvim-treesitter` | Full Tree-sitter plugin ecosystem | Own parser/query data plus feature modules | Installer plus highlight, indent, textobject, and module integrations | Users who want the traditional all-in-one Tree-sitter plugin surface. |
+| `tiny-treesitter.nvim` | Small installer API with automatic install/update conveniences | Bundled data from nvim-treesitter and Arborist revisions | `curl` GitHub tarball → `tar` extract → `tree-sitter build` | Configs that want native Neovim Tree-sitter APIs with a compact compatibility surface and a slightly wider registry. |
+| `nvim-treesitter` | Official parser/query installer with experimental indentation support | Its own parser definitions, filetypes, and queries | `curl` parser archive → extract/build/install | Users who want the official data and API directly, or its experimental indentation integration. |
 | `arborist.nvim` | Automatic parser manager | Bundled Arborist registry and queries | WASM-first, then native build fallback | Users who want automatic parser install/start behavior managed by one plugin. |
 | `tree-sitter-manager.nvim` | Parser manager with TUI | Bundled queries plus user-overridable parser sources | Clone parser repos → `tree-sitter` CLI build | Users who want an interactive manager UI, custom/fork parser sources, and optional auto-install/highlight behavior. |
 
-tiny-treesitter.nvim intentionally keeps the smallest feature set in this comparison. It uses GitHub tarballs instead of `git clone`, avoids manager UI and runtime feature modules, runs parser jobs concurrently, and leaves starting Tree-sitter, highlighting, indentation, and higher-level modules to your own config or other plugins.
+tiny-treesitter.nvim intentionally keeps a narrow feature set. It uses GitHub tarballs instead of `git clone`, avoids a manager UI and runtime feature modules, runs parser jobs concurrently, and leaves starting Tree-sitter, highlighting, indentation, and higher-level modules to your own config or other plugins.
 
 ## Documentation
 
@@ -133,38 +133,22 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 ```
 
-### Updating generated registry
-
-`lua/tiny-treesitter/parsers.lua` and `plugin/filetypes.lua` are generated from `arborist-ts/arborist.nvim/registry`:
+### Updating vendored data
 
 ```bash
-node scripts/update-registry.mjs
+node scripts/update-vendor.mjs
 ```
 
-Optional environment variable:
-
-- `REGISTRY_SOURCE_URL`: raw registry base URL. Defaults to `https://raw.githubusercontent.com/arborist-ts/arborist.nvim/main/registry`.
-
-Generated registry files are intentionally ignored by Stylua.
-
-### Updating vendored queries
-
-`runtime/queries` is vendored from `arborist-ts/queries`. The Arborist repository stores query files under top-level `queries/`; this updater copies those language directories into this plugin's `runtime/queries` source cache.
-
-Refresh it periodically with:
+The source refs default to `main` and can be selected explicitly:
 
 ```bash
-node scripts/update-queries.mjs
+node scripts/update-vendor.mjs --nvim-ref main --arborist-ref main
 ```
 
-Optional environment variables:
-
-- `QUERY_SOURCE_REF`: upstream branch, tag, or commit to vendor. Defaults to `main`.
-- `QUERY_SOURCE_URL`: upstream repository URL. Defaults to `https://github.com/arborist-ts/queries`.
-- `TINY_TREESITTER_UPDATE_QUERIES_DRY_RUN=1`: print what would be updated without touching files.
+The weekly [`update-vendor` workflow](./.github/workflows/update-vendor.yml) runs this same command, then proposes the complete update as one pull request.
 
 ## 📝 License
 
-The generated parser registry and filetype aliases are derived from `arborist-ts/arborist.nvim`; vendored queries are derived from `arborist-ts/queries`.
-
 [MIT](./LICENSE). Made with ❤️ by [Ray](https://github.com/so1ve)
+
+Vendored `nvim-treesitter` data is distributed under [Apache-2.0 license](./LICENSES/nvim-treesitter.txt), and Arborist data under [MIT license](./LICENSES/arborist.nvim.txt).

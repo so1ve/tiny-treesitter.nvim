@@ -21,13 +21,13 @@ local function is_ignored(name)
 end
 
 local function resolve_language(lang, parsers)
-  if parsers[lang] then
+  if parsers[lang] and parsers[lang].install_info then
     return lang
   end
 
   local resolved = vim.treesitter.language.get_lang(lang)
 
-  if resolved and parsers[resolved] then
+  if resolved and parsers[resolved] and parsers[resolved].install_info then
     return resolved
   end
 
@@ -93,8 +93,8 @@ function M.setup(opts)
         -- that are not standalone parser registry entries, e.g. JavaScript can
         -- resolve to `ecma`. Fall back to the original filetype when it is the
         -- installable parser name.
-        if not parsers[parser] then
-          if not parsers[filetype] then
+        if not parsers[parser] or not parsers[parser].install_info then
+          if not parsers[filetype] or not parsers[filetype].install_info then
             return
           end
 
@@ -158,7 +158,13 @@ function M.get_available()
   vim.api.nvim_exec_autocmds("User", { pattern = "TSUpdate" })
 
   local parsers = require("tiny-treesitter.parsers")
-  local languages = vim.tbl_keys(parsers)
+  local languages = {}
+
+  for name, parser in pairs(parsers) do
+    if parser.install_info then
+      table.insert(languages, name)
+    end
+  end
 
   table.sort(languages)
 

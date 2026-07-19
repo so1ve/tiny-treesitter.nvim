@@ -1,1 +1,5 @@
 runtime/queries/** linguist-vendored
+lua/tiny-treesitter/parsers.lua linguist-generated
+plugin/filetypes.lua linguist-generated
+vendor-sources.json linguist-generated
+LICENSES/*.txt linguist-vendored

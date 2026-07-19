@@ -1,0 +1,49 @@
+name: Update vendor
+
+on:
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      nvim_treesitter_ref:
+        required: false
+        default: main
+      arborist_ref:
+        required: false
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Update vendor data
+        run: |
+          node scripts/update-vendor.mjs
+          --nvim-ref "${{ inputs.nvim_treesitter_ref || 'main' }}"
+          --arborist-ref "${{ inputs.arborist_ref || 'main' }}"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-vendor
+          commit-message: "chore: update treesitter vendor data"
+          title: "chore: update treesitter vendor data"
+          body: |
+            Automated vendor bump.
+          add-paths: |
+            lua/tiny-treesitter/parsers.lua
+            plugin/filetypes.lua
+            runtime/queries
+            vendor-sources.json
+            LICENSES/nvim-treesitter.txt
+            LICENSES/arborist.nvim.txt
