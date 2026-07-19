@@ -27,7 +27,7 @@ jobs:
           node-version: 26
 
       - name: Update vendor data
-        run: |
+        run: >-
           node scripts/update-vendor.mjs
           --nvim-ref "${{ inputs.nvim_treesitter_ref || 'main' }}"
           --arborist-ref "${{ inputs.arborist_ref || 'main' }}"
