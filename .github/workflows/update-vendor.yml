@@ -2,7 +2,7 @@ name: Update vendor
 
 on:
   schedule:
-    - cron: "23 3 * * 1"
+    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       nvim_treesitter_ref:
