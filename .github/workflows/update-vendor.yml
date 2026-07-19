@@ -35,11 +35,11 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v8
         with:
-          branch: chore/update-vendor
-          commit-message: "chore: update treesitter vendor data"
-          title: "chore: update treesitter vendor data"
+          branch: feat/update-vendor
+          commit-message: "feat: update treesitter vendor data"
+          title: "feat: update treesitter vendor data"
           body: |
-            Automated vendor bump.
+            Automated vendor bump
           add-paths: |
             lua/tiny-treesitter/parsers.lua
             plugin/filetypes.lua
