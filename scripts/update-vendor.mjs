@@ -205,7 +205,38 @@ async function exists(target) {
   }
 }
 
+function renderUpdateSummary(previousSources, currentSources) {
+  const changes = Object.entries(currentSources)
+    .filter(([name, source]) => previousSources[name]?.revision !== source.revision)
+    .map(([name, source]) => {
+      const previousRevision = previousSources[name]?.revision;
+      const repository = source.repository.replace(/\/$/, "");
+
+      if (!previousRevision) {
+        return "- [" + name + ": " + source.revision.slice(0, 7) + "]("
+          + repository + "/commit/" + source.revision + ")";
+      }
+
+      return "- [" + name + ": " + previousRevision.slice(0, 7) + " → "
+        + source.revision.slice(0, 7) + "](" + repository + "/compare/"
+        + previousRevision + "..." + source.revision + ")";
+    });
+
+  return [
+    "Automated vendor bump.",
+    "",
+    "## Updated sources",
+    "",
+    ...changes,
+    "",
+  ].join("\n");
+}
+
 async function updateVendor() {
+  const previousSources = JSON.parse(
+    await readFile(path.join(repoRoot, "vendor-sources.json"), "utf8"),
+  );
+
   await syncRepository(nvimDir, repositories["nvim-treesitter"], values["nvim-ref"]);
   await syncRepository(arboristDir, repositories.arborist, values["arborist-ref"]);
 
@@ -278,7 +309,7 @@ async function updateVendor() {
     }
   }
 
-  await writeFile(path.join(repoRoot, "vendor-sources.json"), `${JSON.stringify({
+  const currentSources = {
     "nvim-treesitter": {
       repository: repositories["nvim-treesitter"],
       revision: nvimRevision,
@@ -287,7 +318,16 @@ async function updateVendor() {
       repository: repositories.arborist,
       revision: arboristRevision,
     },
-  }, null, 2)}\n`);
+  };
+
+  await writeFile(
+    path.join(repoRoot, "vendor-sources.json"),
+    `${JSON.stringify(currentSources, null, 2)}\n`,
+  );
+  await writeFile(
+    path.join(repoRoot, ".vendor", "update-summary.md"),
+    renderUpdateSummary(previousSources, currentSources),
+  );
 
   await mkdir(path.join(repoRoot, "LICENSES"), { recursive: true });
   await writeFile(path.join(repoRoot, "LICENSES", "nvim-treesitter.txt"), nvimLicense);

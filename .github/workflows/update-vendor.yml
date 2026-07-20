@@ -27,10 +27,7 @@ jobs:
           node-version: 26
 
       - name: Update vendor data
-        run: >-
-          node scripts/update-vendor.mjs
-          --nvim-ref "${{ inputs.nvim_treesitter_ref || 'main' }}"
-          --arborist-ref "${{ inputs.arborist_ref || 'main' }}"
+        run: node scripts/update-vendor.mjs --nvim-ref "${{ inputs.nvim_treesitter_ref || 'main' }}" --arborist-ref "${{ inputs.arborist_ref || 'main' }}"
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v8
@@ -38,8 +35,7 @@ jobs:
           branch: feat/update-vendor
           commit-message: "feat: update treesitter vendor data"
           title: "feat: update treesitter vendor data"
-          body: |
-            Automated vendor bump
+          body-path: .vendor/update-summary.md
           add-paths: |
             lua/tiny-treesitter/parsers.lua
             plugin/filetypes.lua
