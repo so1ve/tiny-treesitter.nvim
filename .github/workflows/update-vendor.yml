@@ -44,8 +44,8 @@ jobs:
             vendor-sources.json
             LICENSES
 
-      - name: Enable auto-merge
+      - name: Merge pull request
         if: steps.create-pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge --auto --squash --delete-branch "${{ steps.create-pr.outputs.pull-request-number }}"
+        run: gh pr merge --squash --delete-branch "${{ steps.create-pr.outputs.pull-request-number }}"
