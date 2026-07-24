@@ -30,6 +30,7 @@ jobs:
         run: node scripts/update-vendor.mjs --nvim-ref "${{ inputs.nvim_treesitter_ref || 'main' }}" --arborist-ref "${{ inputs.arborist_ref || 'main' }}"
 
       - name: Create pull request
+        id: create-pr
         uses: peter-evans/create-pull-request@v8
         with:
           branch: feat/update-vendor
@@ -41,5 +42,10 @@ jobs:
             plugin/filetypes.lua
             runtime/queries
             vendor-sources.json
-            LICENSES/nvim-treesitter.txt
-            LICENSES/arborist.nvim.txt
+            LICENSES
+
+      - name: Enable auto-merge
+        if: steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge --auto --squash --delete-branch "${{ steps.create-pr.outputs.pull-request-number }}"
