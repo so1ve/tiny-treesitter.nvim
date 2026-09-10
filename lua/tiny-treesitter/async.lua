@@ -1,4 +1,10 @@
-local core = require("vim._async")
+local modern = vim.async
+local core
+if not modern then
+  core = require("vim._async")
+end
+
+local await = modern and modern.await or core.await
 
 local M = {}
 
@@ -25,11 +31,11 @@ local function spawn(cmd, opts, done)
 end
 
 function M.schedule()
-  return core.await(1, vim.schedule)
+  return await(1, vim.schedule)
 end
 
 function M.system(cmd, opts)
-  return core.await(3, spawn, cmd, opts)
+  return await(3, spawn, cmd, opts)
 end
 
 function M.join(limit, tasks)
@@ -51,7 +57,22 @@ function M.join(limit, tasks)
   end
 
   if #wrapped > 0 then
-    core.join(limit, wrapped)
+    if modern then
+      local semaphore = modern.semaphore(limit)
+      local handles = {}
+
+      for index, task in ipairs(wrapped) do
+        handles[index] = modern.run(function()
+          semaphore:with(task)
+        end)
+      end
+
+      for _, handle in ipairs(handles) do
+        modern.await(handle)
+      end
+    else
+      core.join(limit, wrapped)
+    end
   end
 
   return results, errors
@@ -64,18 +85,28 @@ function M.run(task, opts)
     return false, { error = "tiny-treesitter: wait=true cannot be used from a fast event" }
   end
 
-  local handle = core.run(function()
+  local function execute()
     M.schedule()
 
     return task()
-  end, opts.callback)
+  end
+
+  local handle
+  if modern then
+    handle = modern.run(execute)
+    if opts.callback then
+      handle:on_complete(opts.callback)
+    end
+  else
+    handle = core.run(execute, opts.callback)
+  end
 
   if not opts.wait then
     return handle
   end
 
   local ok, result, extra = pcall(function()
-    return handle:wait(opts.timeout)
+    return handle:wait(opts.timeout or 120000)
   end)
 
   if ok then
