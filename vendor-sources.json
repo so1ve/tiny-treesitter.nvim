@@ -1,7 +1,7 @@
 {
   "nvim-treesitter": {
     "repository": "https://github.com/nvim-treesitter/nvim-treesitter",
-    "revision": "d3e4a28b63961ba972b0945d66c73b6eec969953"
+    "revision": "29212d826054bb2948fa9d3a99eca9bf6a050eb2"
   },
   "arborist": {
     "repository": "https://github.com/arborist-ts/arborist.nvim",
