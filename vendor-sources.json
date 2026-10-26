@@ -5,6 +5,6 @@
   },
   "arborist": {
     "repository": "https://github.com/arborist-ts/arborist.nvim",
-    "revision": "637567c67ffd9fbbf7aa37b8d0b9c5cab985b48a"
+    "revision": "1a6b2cb16c72641e1311ceb165feb6e4bf30c8fa"
   }
 }
