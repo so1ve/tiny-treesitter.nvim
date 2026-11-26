@@ -2342,7 +2342,7 @@ return {
   ["actions"] = {
     install_info = {
       url = "https://github.com/ClearHeadToDo-Devs/tree-sitter-actions",
-      revision = "3b36af9079c51535e46a608cd8fa0d44204240cc",
+      revision = "e772affe79770aedc81c598c581da4d89c3d52f0",
     },
   },
   ["cylc"] = {
